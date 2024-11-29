@@ -257,3 +257,20 @@ france.input4 <- dat.france[which(apply(dat.france[,voting.inputs],1,sum) < quan
 #Results
 results(france.input4,france.subpopulation,france.total,france.resultados,voting.inputs,control.inputs = control.inputs)
 
+#############################################################################################################################################
+#ITALY
+#############################################################################################################################################
+#Import dataset into R (code used for importing the data)
+#.......................................
+
+Pollfish_Survey_Elecciones_Europeas_it <- read_excel("/Users/paulablazquez/Library/Mobile Documents/com~apple~CloudDocs/UNIVERSIDAD/TFG/Data/Pollfish_Survey_Elezioni_del_Parlamento_Europeo_del_2024_389899149_it.xlsx")
+
+df.italy <- as.data.frame(Pollfish_Survey_Elecciones_Europeas_it[,-3]) # The column with the permission is removed
+dim(df.italy)
+colnames(df.italy) <- c("Gender","Year.Birth","FdI","PD","M5S","LSP","FI","IV","Blanco","NoSabe","edad.18.34","edad.35.54","edad.mas.54","autonomo","desempleado","medico","Education","Employment.Status","Income")
+
+#https://it.wikipedia.org/wiki/Elezioni_europee_del_2024_in_Italia
+#ITALIA VIVA está dentro de Stati Uniti d'Europa
+
+italy.resultados <- c(0.2876,0.2411,0.0998,0.0897,0.0957,0.0377,0.0221)
+
