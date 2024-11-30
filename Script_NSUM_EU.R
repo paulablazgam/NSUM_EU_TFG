@@ -274,3 +274,69 @@ colnames(df.italy) <- c("Gender","Year.Birth","FdI","PD","M5S","LSP","FI","IV","
 
 italy.resultados <- c(0.2876,0.2411,0.0998,0.0897,0.0957,0.0377,0.0221)
 
+#.......................................
+#Preproc
+#.......................................
+
+dat.italy<-prep(df.italy)
+# Encuestas que solo respondan su votacion
+dat.italy <- dat.italy[rowSums(dat.italy[, 10:15]) > 1, ]
+dat.italy <- dat.italy[rowSums(dat.italy[, 3:9]) > 1, ]
+summary(dat.italy)
+
+#.......................................
+#Real data for control inputs
+#.......................................
+
+#italy.subpopulation<- c(18-34,35-54,+55,autonomos,desempleados,medicos)  
+#autonomos    #https://www.istat.it/it/files/2024/03/GENNAIO-2024-CS-Occupati-e-disoccupati.pdf
+#medicos      # https://www.statista.com/statistics/462075/physicians-employment-in-italy/
+#desempleados #https://tradingeconomics.com/italy/unemployment-rate
+#poblacion    #https://demo.istat.it/app/?i=POS&l=it
+
+
+italy.subpopulation <- c(10388946,16182560,23489719,5045000,1588000,250813)  
+italy.total <- 50061225 
+names(italy.subpopulation) <- control.inputs
+
+#.......................................
+#Identification of outlying observations
+#.......................................
+
+# Encuestas que solo respondan su votacion
+
+#.......................................
+#Criterion for retaining the respondents with a network under a specific threshold
+#.......................................
+
+threshold.net.size.vote.intention <- 0.80 #We can study the thresholds: 0.80,0.90,0.95 
+italy.input1<- dat.italy[which(apply(dat.italy[,voting.inputs],1,sum)<quantile(apply(dat.italy[,voting.inputs],1,sum),probs = threshold.net.size.vote.intention)),]
+
+#Results
+results(italy.input1,italy.subpopulation,italy.total,italy.resultados,voting.inputs,control.inputs = control.inputs)
+
+#.......................................
+# Filtering criterion for a political group majoritary voting 
+#.......................................
+italy.input2 <- dat.italy[which(apply(dat.italy[,voting.inputs[1:6]],1,function(x) max(prop.table(x)))<=0.95),] 
+
+#Results
+results(italy.input2,italy.subpopulation,italy.total,italy.resultados,voting.inputs,control.inputs = control.inputs)
+
+#.......................................
+# Filtering criterion of unusual blank vote 
+#.......................................
+outliers.vote.blank.flag <- is_mad_outlier(dat.italy[,voting.inputs[7]],5) #We can study the thresholds: 2, 3 and 5 (the defauls value is 5) 
+threshold.net.size.vote.blank <- max(dat.italy[!outliers.vote.blank.flag,voting.inputs[7]]) # Calculate it from the MAD
+italy.input3 <- dat.italy[which(dat.italy[,voting.inputs[7]]<=threshold.net.size.vote.blank),] 
+
+#Results
+results(italy.input3,italy.subpopulation,italy.total,italy.resultados,voting.inputs,control.inputs = control.inputs)
+
+#.......................................
+# Filtering criterion together
+#.......................................
+italy.input4 <- dat.italy[which(apply(dat.italy[,voting.inputs],1,sum) < quantile(apply(dat.italy[,voting.inputs],1,sum),probs = threshold.net.size.vote.intention) & apply(dat.italy[,voting.inputs[1:6]],1,function(x) max(prop.table(x)))<=0.95 & dat.italy[,voting.inputs[7]]<=threshold.net.size.vote.blank),] 
+#Results
+results(italy.input4,italy.subpopulation,italy.total,italy.resultados,voting.inputs,control.inputs = control.inputs)
+
