@@ -64,7 +64,7 @@ results<-function(input.dat,subpopulation.sizes,total,resultados.reales,voting.i
   #Ratio of sums approach
   RoS.results <- colSums(dat.nsum[,voting.inputs])/sum(dat.nsum[,voting.inputs])
   #MoS approach (Hebecker 2015)
-  MoS.degrees <- total*rowMeans(dat.nsum[,control.inputs[1:3]]/subpopulation.sizes[1:3])
+  MoS.degrees <- total*rowMeans(dat.nsum[,control.inputs]/subpopulation.sizes)
   MoS.sizes <- total*apply(dat.nsum[,voting.inputs],2,function (x) mean(x/MoS.degrees,na.rm = TRUE))
   MoS.results <- prop.table(MoS.sizes)
   #MLE method
@@ -79,8 +79,8 @@ results<-function(input.dat,subpopulation.sizes,total,resultados.reales,voting.i
   #overdispersed.results <- prop.table(overdispersed.est <- colMeans(overdispersed.est$sizes)[1:7])
   
   #Summary
-  Summary <- data.frame(Naive = naive.results, Naive2 = naive2.results,MoS = MoS.results,RoS = RoS.results,MLE=mle.results,PIMLE=pimle.results,Reales=resultados.reales)
-  return(t(Summary))
+  Summary <- t(data.frame(Naive = naive.results, Naive2 = naive2.results,MoS = MoS.results,RoS = RoS.results,MLE=mle.results,PIMLE=pimle.results,Reales=resultados.reales))
+  return(Summary)
 }
 #...................
 #Functions for outlier detection
@@ -95,6 +95,25 @@ is_mad_outlier <- function(x,threshold.mad=5) {
   abs(x - quantile(x, c(0.5), na.rm = T)) / median_abs_deviation(x) > threshold.mad
 }
 
+#...................
+# Función para calcular la distribución de escaños utilizando el método D'Hondt
+#..................
+compute_all_distributions <- function(results, seats) {
+  # Crear una lista para almacenar los resultados
+  seat_distributions <- list()
+  
+  # Iterar sobre las filas de la tabla de resultados
+  for (method in rownames(results)) {
+    # Calcular la distribución de escaños para cada fila (método)
+    seat_distributions[[method]] <- compute_dhont_seats(results[method, 1:6], seats)
+  }
+  
+  # Convertir la lista en un data frame organizado
+  seat_table <- do.call(rbind, seat_distributions)
+  colnames(seat_table) <- colnames(results)[1:6]  # Partidos
+  return(seat_table)
+}
+
 #############################################################################################################################################
 #SPAIN
 #############################################################################################################################################
@@ -105,7 +124,11 @@ Pollfish_Survey_Elecciones_Europeas_es <- read_excel("~/Library/Mobile Documents
 df.spain <- as.data.frame(Pollfish_Survey_Elecciones_Europeas_es[,-3]) # The column with the permission is removed
 dim(df.spain)
 colnames(df.spain) <- c("Gender","Year.Birth","PP","PSOE","Vox","Sumar","UP","Ahora.Republicas","Blanco","NoSabe","edad.18.34","edad.35.54","edad.mas.54","autonomo","desempleado","medico","Education","Employment.Status","Income")
+
+#https://es.wikipedia.org/wiki/Elecciones_al_Parlamento_Europeo_de_2024_(España)#Resultados[66]%E2%80%8B
 spain.resultados <- c(0.3421,0.3019,0.0963,0.0467,0.033,0.0491,0.007)
+spain.resultados.DHont<-c(22,20,6,3,2,3)
+spain.escanos <- 61
 
 #.......................................
 #Preproc
@@ -150,7 +173,9 @@ threshold.net.size.vote.intention <- 0.80 #We can study the thresholds: 0.80,0.9
 spain.input1<- dat.spain[which(apply(dat.spain[,voting.inputs],1,sum)<quantile(apply(dat.spain[,voting.inputs],1,sum),probs = threshold.net.size.vote.intention)),]
 
 #Results
-results(spain.input1,spain.subpopulation,spain.total,spain.resultados,voting.inputs,control.inputs = control.inputs)
+(spain.results1<-results(spain.input1,spain.subpopulation,spain.total,spain.resultados,voting.inputs,control.inputs = control.inputs))
+
+(spain.Dhont1 <- compute_all_distributions(spain.results1, spain.escanos))
 
 #.......................................
 # Filtering criterion for a political group majoritary voting 
@@ -158,7 +183,10 @@ results(spain.input1,spain.subpopulation,spain.total,spain.resultados,voting.inp
 spain.input2 <- dat.spain[which(apply(dat.spain[,voting.inputs[1:6]],1,function(x) max(prop.table(x)))<=0.95),] 
 
 #Results
-results(spain.input2,spain.subpopulation,spain.total,spain.resultados,voting.inputs,control.inputs)
+(spain.results2<-results(spain.input2,spain.subpopulation,spain.total,spain.resultados,voting.inputs,control.inputs))
+
+(spain.Dhont2 <- compute_all_distributions(spain.results2, spain.escanos))
+
 
 #.......................................
 # Filtering criterion of unusual blank vote 
@@ -168,14 +196,19 @@ threshold.net.size.vote.blank <- max(dat.spain[!outliers.vote.blank.flag,voting.
 spain.input3 <- dat.spain[which(dat.spain[,voting.inputs[7]]<=threshold.net.size.vote.blank),] 
 
 #Results
-results(spain.input3,spain.subpopulation,spain.total,spain.resultados,voting.inputs,control.inputs)
+(spain.results3<-results(spain.input3,spain.subpopulation,spain.total,spain.resultados,voting.inputs,control.inputs))
+(spain.Dhont3 <- compute_all_distributions(spain.results3, spain.escanos))
+
+
 
 #.......................................
 # Filtering criterion together
 #.......................................
 spain.input4 <- dat.spain[which(apply(dat.spain[,voting.inputs],1,sum) < quantile(apply(dat.spain[,voting.inputs],1,sum),probs = threshold.net.size.vote.intention) & apply(dat.spain[,voting.inputs[1:4]],1,function(x) max(prop.table(x)))<=0.95 & dat.spain[,voting.inputs[5]]<=threshold.net.size.vote.blank),] 
 #Results
-results(spain.input4,spain.subpopulation,spain.total,spain.resultados,voting.inputs,control.inputs)
+(spain.results4<-results(spain.input4,spain.subpopulation,spain.total,spain.resultados,voting.inputs,control.inputs))
+
+(spain.Dhont4 <- compute_all_distributions(spain.results4, spain.escanos))
 
 
 
@@ -189,7 +222,11 @@ Pollfish_Survey_Elecciones_Europeas_fr <- read_excel("/Users/paulablazquez/Libra
 df.france <- as.data.frame(Pollfish_Survey_Elecciones_Europeas_fr[,-3]) # The column with the permission is removed
 dim(df.france)
 colnames(df.france) <- c("Gender","Year.Birth","BdE","La France revient","LE","LR","LFI","RlE","Blanco","NoSabe","edad.18.34","edad.35.54","edad.mas.54","autonomo","desempleado","medico","Education","Employment.Status","Income")
+#https://es.wikipedia.org/wiki/Elecciones_al_Parlamento_Europeo_de_2024_(Francia)
+
 france.resultados <- c(0.1460,0.3137,0.055,0.0725,0.0989,0.1383,0.0137)
+france.resultados.DHont<-c(13,30,5,6,9,13)
+france.escanos <- 81
 
 #.......................................
 #Preproc
@@ -230,7 +267,8 @@ threshold.net.size.vote.intention <- 0.80 #We can study the thresholds: 0.80,0.9
 france.input1<- dat.france[which(apply(dat.france[,voting.inputs],1,sum)<quantile(apply(dat.france[,voting.inputs],1,sum),probs = threshold.net.size.vote.intention)),]
 
 #Results
-results(france.input1,france.subpopulation,france.total,france.resultados,voting.inputs,control.inputs = control.inputs)
+(france.results1<-results(france.input1,france.subpopulation,france.total,france.resultados,voting.inputs,control.inputs = control.inputs))
+(france.Dhont1 <- compute_all_distributions(france.results1, france.escanos))
 
 #.......................................
 # Filtering criterion for a political group majoritary voting 
@@ -238,7 +276,10 @@ results(france.input1,france.subpopulation,france.total,france.resultados,voting
 france.input2 <- dat.france[which(apply(dat.france[,voting.inputs[1:6]],1,function(x) max(prop.table(x)))<=0.95),] 
 
 #Results
-results(france.input2,france.subpopulation,france.total,france.resultados,voting.inputs,control.inputs = control.inputs)
+
+(france.results2<-results(france.input2,france.subpopulation,france.total,france.resultados,voting.inputs,control.inputs = control.inputs))
+(france.Dhont2 <- compute_all_distributions(france.results2, france.escanos))
+
 
 #.......................................
 # Filtering criterion of unusual blank vote 
@@ -248,14 +289,17 @@ threshold.net.size.vote.blank <- max(dat.france[!outliers.vote.blank.flag,voting
 france.input3 <- dat.france[which(dat.france[,voting.inputs[7]]<=threshold.net.size.vote.blank),] 
 
 #Results
-results(france.input3,france.subpopulation,france.total,france.resultados,voting.inputs,control.inputs = control.inputs)
+(france.results3<- results(france.input3,france.subpopulation,france.total,france.resultados,voting.inputs,control.inputs = control.inputs))
+(france.Dhont3 <- compute_all_distributions(france.results3, france.escanos))
 
 #.......................................
 # Filtering criterion together
 #.......................................
 france.input4 <- dat.france[which(apply(dat.france[,voting.inputs],1,sum) < quantile(apply(dat.france[,voting.inputs],1,sum),probs = threshold.net.size.vote.intention) & apply(dat.france[,voting.inputs[1:6]],1,function(x) max(prop.table(x)))<=0.95 & dat.france[,voting.inputs[7]]<=threshold.net.size.vote.blank),] 
 #Results
-results(france.input4,france.subpopulation,france.total,france.resultados,voting.inputs,control.inputs = control.inputs)
+(france.results4<- results(france.input4,france.subpopulation,france.total,france.resultados,voting.inputs,control.inputs = control.inputs))
+(france.Dhont4 <- compute_all_distributions(france.results4, france.escanos))
+
 
 #############################################################################################################################################
 #ITALY
@@ -273,6 +317,9 @@ colnames(df.italy) <- c("Gender","Year.Birth","FdI","PD","M5S","LSP","FI","IV","
 #ITALIA VIVA está dentro de Stati Uniti d'Europa
 
 italy.resultados <- c(0.2876,0.2411,0.0998,0.0897,0.0957,0.0377,0.0221)
+italy.resultados.DHont<-c(24,21,8,8,8,0)
+italy.escanos <- 76
+
 
 #.......................................
 #Preproc
@@ -313,7 +360,8 @@ threshold.net.size.vote.intention <- 0.80 #We can study the thresholds: 0.80,0.9
 italy.input1<- dat.italy[which(apply(dat.italy[,voting.inputs],1,sum)<quantile(apply(dat.italy[,voting.inputs],1,sum),probs = threshold.net.size.vote.intention)),]
 
 #Results
-results(italy.input1,italy.subpopulation,italy.total,italy.resultados,voting.inputs,control.inputs = control.inputs)
+(italy.results1<-results(italy.input1,italy.subpopulation,italy.total,italy.resultados,voting.inputs,control.inputs = control.inputs))
+(italy.Dhont1 <- compute_all_distributions(italy.results1, italy.escanos))
 
 #.......................................
 # Filtering criterion for a political group majoritary voting 
@@ -321,7 +369,9 @@ results(italy.input1,italy.subpopulation,italy.total,italy.resultados,voting.inp
 italy.input2 <- dat.italy[which(apply(dat.italy[,voting.inputs[1:6]],1,function(x) max(prop.table(x)))<=0.95),] 
 
 #Results
-results(italy.input2,italy.subpopulation,italy.total,italy.resultados,voting.inputs,control.inputs = control.inputs)
+(italy.results2<-results(italy.input2,italy.subpopulation,italy.total,italy.resultados,voting.inputs,control.inputs = control.inputs))
+(italy.Dhont2 <- compute_all_distributions(italy.results2, italy.escanos))
+
 
 #.......................................
 # Filtering criterion of unusual blank vote 
@@ -331,12 +381,14 @@ threshold.net.size.vote.blank <- max(dat.italy[!outliers.vote.blank.flag,voting.
 italy.input3 <- dat.italy[which(dat.italy[,voting.inputs[7]]<=threshold.net.size.vote.blank),] 
 
 #Results
-results(italy.input3,italy.subpopulation,italy.total,italy.resultados,voting.inputs,control.inputs = control.inputs)
+(italy.results3<-results(italy.input3,italy.subpopulation,italy.total,italy.resultados,voting.inputs,control.inputs = control.inputs))
+(italy.Dhont3 <- compute_all_distributions(italy.results3, italy.escanos))
+
 
 #.......................................
 # Filtering criterion together
 #.......................................
 italy.input4 <- dat.italy[which(apply(dat.italy[,voting.inputs],1,sum) < quantile(apply(dat.italy[,voting.inputs],1,sum),probs = threshold.net.size.vote.intention) & apply(dat.italy[,voting.inputs[1:6]],1,function(x) max(prop.table(x)))<=0.95 & dat.italy[,voting.inputs[7]]<=threshold.net.size.vote.blank),] 
 #Results
-results(italy.input4,italy.subpopulation,italy.total,italy.resultados,voting.inputs,control.inputs = control.inputs)
-
+(italy.results4<-results(italy.input4,italy.subpopulation,italy.total,italy.resultados,voting.inputs,control.inputs = control.inputs))
+(italy.Dhont4 <- compute_all_distributions(italy.results4, italy.escanos))
