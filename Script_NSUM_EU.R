@@ -98,39 +98,90 @@ is_mad_outlier <- function(x,threshold.mad=5) {
 #...................
 # Función para calcular la distribución de escaños utilizando el método D'Hondt
 #..................
-compute_dhont_seats <- function(votes, seats) {
-  # Create a vector to store the number of seats each party receives
-  party_seats <- rep(0, length(votes))
-  # Loop to allocate seats
-  for (i in 1:seats) {
-    # Calculate the allocation ratio for each party
-    allocation_ratios <- votes / (party_seats + 1)
+#SIN OTROS
+dHont <- function(results, seats, reales) {
+  # Función auxiliar para calcular los escaños utilizando el método D'Hondt
+  compute_dhont_seats <- function(votes, seats) {
+    # Crear un vector para almacenar los escaños asignados a cada partido
+    party_seats <- rep(0, length(votes))
     
-    # Find the party with the highest allocation ratio
-    party_with_highest_ratio <- which.max(allocation_ratios)
+    # Bucle para asignar los escaños
+    for (i in 1:seats) {
+      # Calcular las ratios de asignación para cada partido
+      allocation_ratios <- votes / (party_seats + 1)
+      
+      # Encontrar el partido con la ratio más alta
+      party_with_highest_ratio <- which.max(allocation_ratios)
+      
+      # Asignar un escaño al partido con la ratio más alta
+      party_seats[party_with_highest_ratio] <- party_seats[party_with_highest_ratio] + 1
+    }
     
-    # Allocate a seat to the party with the highest ratio
-    party_seats[party_with_highest_ratio] <- party_seats[party_with_highest_ratio] + 1
+    # Devolver el vector de escaños asignados
+    return(party_seats)
   }
   
-  # Return the vector of seats allocated to each party
-  return(party_seats)
-}
-
-
-dHont <- function(results, seats) {
-  # Crear una lista para almacenar los resultados
+  # Crear una lista para almacenar los resultados de las distribuciones de escaños
   seat_distributions <- list()
   
-  # Iterar sobre las filas de la tabla de resultados
-  for (method in rownames(results)) {
-    # Calcular la distribución de escaños para cada fila (método)
+  # Iterar sobre las filas de la tabla de resultados (primeras 6 filas)
+  for (method in rownames(results[1:6, ])) {
+    # Calcular la distribución de escaños para cada método
     seat_distributions[[method]] <- compute_dhont_seats(results[method, 1:6], seats)
   }
   
   # Convertir la lista en un data frame organizado
   seat_table <- do.call(rbind, seat_distributions)
-  colnames(seat_table) <- colnames(results)[1:6]  # Partidos
+  colnames(seat_table) <- colnames(results)[1:6]  # Asignar nombres de partidos
+  
+  # Agregar los resultados reales como la última fila
+  seat_table <- rbind(seat_table, Reales = reales)
+  
+  # Devolver la tabla final
+  return(seat_table)
+}
+
+#CON OTROS 
+
+dHont2 <- function(results, seats, reales) {
+  # Función auxiliar para calcular los escaños utilizando el método D'Hondt
+  compute_dhont_seats <- function(votes, seats) {
+    # Crear un vector para almacenar los escaños asignados a cada partido
+    party_seats <- rep(0, length(votes))
+    
+    # Bucle para asignar los escaños
+    for (i in 1:seats) {
+      # Calcular las ratios de asignación para cada partido
+      allocation_ratios <- votes / (party_seats + 1)
+      
+      # Encontrar el partido con la ratio más alta
+      party_with_highest_ratio <- which.max(allocation_ratios)
+      
+      # Asignar un escaño al partido con la ratio más alta
+      party_seats[party_with_highest_ratio] <- party_seats[party_with_highest_ratio] + 1
+    }
+    
+    # Devolver el vector de escaños asignados
+    return(party_seats)
+  }
+  
+  # Crear una lista para almacenar los resultados de las distribuciones de escaños
+  seat_distributions <- list()
+  
+  # Iterar sobre las filas de la tabla de resultados (primeras 6 filas)
+  for (method in rownames(results[1:6, ])) {
+    # Calcular la distribución de escaños para cada método
+    seat_distributions[[method]] <- compute_dhont_seats(results[method, 1:7], seats)
+  }
+  
+  # Convertir la lista en un data frame organizado
+  seat_table <- do.call(rbind, seat_distributions)
+  colnames(seat_table) <- colnames(results)[1:7]  # Asignar nombres de partidos
+  
+  # Agregar los resultados reales como la última fila
+  seat_table <- rbind(seat_table, Reales = reales)
+  
+  # Devolver la tabla final
   return(seat_table)
 }
 
@@ -147,7 +198,7 @@ colnames(df.spain) <- c("Gender","Year.Birth","PP","PSOE","Vox","Sumar","UP","Ah
 
 #https://es.wikipedia.org/wiki/Elecciones_al_Parlamento_Europeo_de_2024_(España)#Resultados[66]%E2%80%8B
 spain.resultados <- c(0.3421,0.3019,0.0963,0.0467,0.033,0.0491,0.007)
-spain.resultados.DHont<-c(22,20,6,3,2,3)
+spain.resultados.DHont<-c(22,20,6,3,2,3,5)
 spain.escanos <- 61
 
 #.......................................
@@ -201,7 +252,7 @@ spain.input1<- dat.spain[which(apply(dat.spain[,voting.inputs],1,sum)<quantile(a
 #Results
 (spain.results1<-results(spain.input1,spain.subpopulation,spain.total,spain.resultados,voting.inputs,control.inputs = control.inputs))
 
-(spain.Dhont1 <- dHont(spain.results1, spain.escanos))
+(spain.Dhont1 <- dHont(spain.results1, spain.escanos,spain.resultados.DHont))
 
 #.......................................
 # 2. Criterio de filtrado para el voto mayoritario de un grupo político 
@@ -211,7 +262,7 @@ spain.input2 <- dat.spain[which(apply(dat.spain[,voting.inputs[1:6]],1,function(
 #Results
 (spain.results2<-results(spain.input2,spain.subpopulation,spain.total,spain.resultados,voting.inputs,control.inputs))
 
-(spain.Dhont2 <- dHont(spain.results2, spain.escanos))
+(spain.Dhont2 <- dHont(spain.results2, spain.escanos,spain.resultados.DHont))
 
 
 #.......................................
@@ -223,7 +274,7 @@ spain.input3 <- dat.spain[which(dat.spain[,voting.inputs[7]]<=threshold.net.size
 
 #Results
 (spain.results3<-results(spain.input3,spain.subpopulation,spain.total,spain.resultados,voting.inputs,control.inputs))
-(spain.Dhont3 <- dHont(spain.results3, spain.escanos))
+(spain.Dhont3 <- dHont(spain.results3, spain.escanos,spain.resultados.DHont))
 
 
 #.......................................
@@ -238,7 +289,7 @@ mean(rowSums(spain.input4[,voting.inputs]))
 
 (spain.results4<-results(spain.input4,spain.subpopulation,spain.total,spain.resultados,voting.inputs,control.inputs))
 
-(spain.Dhont4 <- dHont(spain.results4, spain.escanos))
+(spain.Dhont4 <- dHont(spain.results4, spain.escanos,spain.resultados.DHont))
 
 dif<-as.data.frame(abs(spain.results4 - matrix(rep(spain.resultados*100, each = nrow(spain.results4)), ncol = ncol(spain.results4), byrow = FALSE)))
 
@@ -251,6 +302,17 @@ spain.input5 <- dat.spain[which(apply(dat.spain[,voting.inputs],1,sum) < quantil
 #Results
 (spain.results5<-results(spain.input5,spain.subpopulation,spain.total,spain.resultados,voting.inputs,control.inputs))
 (spain.Dhont5 <- dHont(spain.results5, spain.escanos))
+
+#.......................................
+# Final Results
+#.......................................
+
+spain.resultados[7]<-0.1309
+spain.input<-dat.spain[which(apply(dat.spain[,voting.inputs[1:4]],1,function(x) max(prop.table(x)))<=0.95 & dat.spain[,voting.inputs[5]]<=threshold.net.size.vote.blank),] 
+spain.results<-results(spain.input,spain.subpopulation,spain.total,spain.resultados,voting.inputs,control.inputs)
+colnames(spain.results)[7]<-"Otros"
+(spain.Dhont <- dHont2(spain.results, spain.escanos,spain.resultados.DHont))
+
 
 #############################################################################################################################################
 #FRANCE
@@ -265,7 +327,7 @@ colnames(df.france) <- c("Gender","Year.Birth","BdE","La France Revient","LE","L
 #https://es.wikipedia.org/wiki/Elecciones_al_Parlamento_Europeo_de_2024_(Francia)
 
 france.resultados <- c(0.1460,0.3137,0.055,0.0725,0.0989,0.1383,0.0137)
-france.resultados.DHont<-c(13,30,5,6,9,13)
+france.resultados.DHont<-c(13,30,5,6,9,13,5)
 france.escanos <- 81
 
 #.......................................
@@ -289,7 +351,7 @@ summary(dat.france)
               #https://www.insee.fr/fr/statistiques/8192479#onglet-3
 
 
-france.subpopulation <- c(11771902 ,17258866,23414389,3500000,2300000,199089)  
+france.subpopulation <- c(11771902 ,17258866,23414389,3700000,2300000,199089)  
 france.total <- 49500000 
 names(france.subpopulation) <- control.inputs
 
@@ -315,7 +377,7 @@ france.input1<- dat.france[which(apply(dat.france[,voting.inputs],1,sum)<quantil
 
 #Results
 (france.results1<-results(france.input1,france.subpopulation,france.total,france.resultados,voting.inputs,control.inputs = control.inputs))
-(france.Dhont1 <- dHont(france.results1, france.escanos))
+(france.Dhont1 <- dHont(france.results1, france.escanos,france.resultados.DHont))
 
 #.......................................
 # 2.Criterio de filtrado para el voto mayoritario de un grupo político 
@@ -325,7 +387,7 @@ france.input2 <- dat.france[which(apply(dat.france[,voting.inputs[1:6]],1,functi
 #Results
 
 (france.results2<-results(france.input2,france.subpopulation,france.total,france.resultados,voting.inputs,control.inputs = control.inputs))
-(france.Dhont2 <- dHont(france.results2, france.escanos))
+(france.Dhont2 <- dHont(france.results2, france.escanos,france.resultados.DHont))
 
 
 #.......................................
@@ -337,7 +399,7 @@ france.input3 <- dat.france[which(dat.france[,voting.inputs[7]]<=threshold.net.s
 
 #Results
 (france.results3<- results(france.input3,france.subpopulation,france.total,france.resultados,voting.inputs,control.inputs = control.inputs))
-(france.Dhont3 <- dHont(france.results3, france.escanos))
+(france.Dhont3 <- dHont(france.results3, france.escanos,france.resultados.DHont))
 
 #.......................................
 # Filtro 2 y 3
@@ -352,7 +414,7 @@ mean(rowSums(france.input4[,voting.inputs]))
 
 (france.results4<-results(france.input4,france.subpopulation,france.total,france.resultados,voting.inputs,control.inputs))
 
-(france.Dhont4 <- dHont(france.results4, france.escanos))
+(france.Dhont4 <- dHont(france.results4, france.escanos,france.resultados.DHont))
 
 dif<-as.data.frame(abs(france.results4 - matrix(rep(france.resultados*100, each = nrow(france.results4)), ncol = ncol(france.results4), byrow = FALSE)))
 
@@ -364,10 +426,26 @@ rowSums(dif)
 france.input42 <- dat.france[which(apply(dat.france[,voting.inputs],1,sum) < quantile(apply(dat.france[,voting.inputs],1,sum),probs = threshold.net.size.vote.intention) & apply(dat.france[,voting.inputs[1:6]],1,function(x) max(prop.table(x)))<=0.95 & dat.france[,voting.inputs[7]]<=threshold.net.size.vote.blank),] 
 #Results
 (france.results42<- results(france.input42,france.subpopulation,france.total,france.resultados,voting.inputs,control.inputs = control.inputs))
-(france.Dhont42 <- dHont(france.results42, france.escanos))
+(france.Dhont42 <- dHont(france.results42, france.escanos,france.resultados.DHont))
 dif2<-as.data.frame(abs(france.results42 - matrix(rep(france.resultados*100, each = nrow(france.results4)), ncol = ncol(france.results4), byrow = FALSE)))
 
 rowSums(dif2)
+
+
+#.......................................
+# Final Results
+#.......................................
+france.resultados[7]<-0.1756
+france.input<-dat.france[which(apply(dat.france[,voting.inputs[1:6]],1,function(x) max(prop.table(x)))<=0.95 & dat.france[,voting.inputs[7]]<=threshold.net.size.vote.blank),] 
+(france.results<-results(france.input,france.subpopulation,france.total,france.resultados,voting.inputs,control.inputs))
+colnames(france.results)[7]<-"Otros"
+(france.Dhont <- dHont2(france.results, france.escanos,france.resultados.DHont))
+
+ipsos<-data.frame(15, 32 ,5, 7, 9.5, 14.5 ,17) 
+dHont2(ipsos,seats = 81,reales = france.resultados.DHont)
+
+IFOP<-data.frame(14.5, 33, 5.5, 7, 9, 13, 18)
+dHont2(IFOP,seats = 81,reales = france.resultados.DHont)
 
 #############################################################################################################################################
 #ITALY
@@ -385,7 +463,7 @@ colnames(df.italy) <- c("Gender","Year.Birth","FdI","PD","M5S","LSP","FI","IV","
 #ITALIA VIVA está dentro de Stati Uniti d'Europa
 
 italy.resultados <- c(0.2876,0.2411,0.0998,0.0897,0.0957,0.0377,0.0221)
-italy.resultados.DHont<-c(24,21,8,8,8,0)
+italy.resultados.DHont<-c(24,21,8,8,8,0,7)
 italy.escanos <- 76
 
 
@@ -403,6 +481,8 @@ summary(dat.italy)
 #Real data for control inputs
 #.......................................
 
+#https://www.tuttitalia.it/statistiche/popolazione-eta-sesso-stato-civile-2023/
+
 #italy.subpopulation<- c(18-34,35-54,+55,autonomos,desempleados,medicos)  
 #autonomos    #https://www.istat.it/it/files/2024/03/GENNAIO-2024-CS-Occupati-e-disoccupati.pdf
 #medicos      # https://www.statista.com/statistics/462075/physicians-employment-in-italy/
@@ -410,15 +490,14 @@ summary(dat.italy)
 #poblacion    #https://demo.istat.it/app/?i=POS&l=it
 
 
-italy.subpopulation <- c(10388946,16182560,23489719,5045000,1588000,250813)  
-italy.total <- 50061225 
+italy.subpopulation <- c(10326180,16435669,23154188,5045000,1588000,250813)  
+italy.total <- 49916037 
 names(italy.subpopulation) <- control.inputs
 
 #.......................................
 # Raw Data
 #.......................................
 
-results(dat.france,france.subpopulation,france.total,france.resultados,voting.inputs,control.inputs = control.inputs)
 results(dat.italy,italy.subpopulation,italy.total,italy.resultados,voting.inputs,control.inputs = control.inputs)
 
 
@@ -436,7 +515,7 @@ italy.input1<- dat.italy[which(apply(dat.italy[,voting.inputs],1,sum)<quantile(a
 
 #Results
 (italy.results1<-results(italy.input1,italy.subpopulation,italy.total,italy.resultados,voting.inputs,control.inputs = control.inputs))
-(italy.Dhont1 <- dHont(italy.results1, italy.escanos))
+(italy.Dhont1 <- dHont(italy.results1, italy.escanos,italy.resultados.DHont))
 
 #.......................................
 # 2.Criterio de filtrado para el voto mayoritario de un grupo político 
@@ -489,4 +568,12 @@ dif2<-as.data.frame(abs(italy.results42 - matrix(rep(italy.resultados*100, each 
 
 rowSums(dif2)
 
+#.......................................
+# Final Results
+#.......................................
+italy.resultados[7]<-0.1484
+italy.input <- dat.italy[which(apply(dat.italy[,voting.inputs[1:6]],1,function(x) max(prop.table(x)))<=0.95 & dat.italy[,voting.inputs[7]]<=threshold.net.size.vote.blank),] 
+(italy.results<-results(italy.input,italy.subpopulation,italy.total,italy.resultados,voting.inputs,control.inputs = control.inputs))
+colnames(italy.results)[7]<-"Otros"
+(italy.Dhont <- dHont2(italy.results, italy.escanos,italy.resultados.DHont))
 
