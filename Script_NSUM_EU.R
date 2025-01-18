@@ -99,6 +99,7 @@ is_mad_outlier <- function(x,threshold.mad=5) {
 # Función para calcular la distribución de escaños utilizando el método D'Hondt
 #..................
 #SIN OTROS
+
 dHont <- function(results, seats, reales) {
   # Función auxiliar para calcular los escaños utilizando el método D'Hondt
   compute_dhont_seats <- function(votes, seats) {
@@ -198,6 +199,8 @@ colnames(df.spain) <- c("Gender","Year.Birth","PP","PSOE","Vox","Sumar","UP","Ah
 
 #https://es.wikipedia.org/wiki/Elecciones_al_Parlamento_Europeo_de_2024_(España)#Resultados[66]%E2%80%8B
 spain.resultados <- c(0.3421,0.3019,0.0963,0.0467,0.033,0.0491,0.007)
+spain.resultados.otros <- c(0.3421,0.3019,0.0963,0.0467,0.033,0.0491,0.1309)
+
 spain.resultados.DHont<-c(22,20,6,3,2,3,5)
 spain.escanos <- 61
 
@@ -232,6 +235,7 @@ median_abs_deviation <- function(x) {
   quantile(abs(x - quantile(x, c(0.5), na.rm = T)), c(0.5), na.rm = T) * 1.4826
 }
 
+
 is_mad_outlier <- function(x,threshold.mad=5) {
   abs(x - quantile(x, c(0.5), na.rm = T)) / median_abs_deviation(x) > threshold.mad
 }
@@ -254,6 +258,11 @@ spain.input1<- dat.spain[which(apply(dat.spain[,voting.inputs],1,sum)<quantile(a
 
 (spain.Dhont1 <- dHont(spain.results1, spain.escanos,spain.resultados.DHont))
 
+dif1<-as.data.frame(abs(spain.results1 - matrix(rep(spain.resultados*100, each = nrow(spain.results1)), ncol = ncol(spain.results1), byrow = FALSE)))
+mean(rowSums(dif1))
+
+dif12<-as.data.frame(abs(spain.results1 - matrix(rep(spain.resultados.otros*100, each = nrow(spain.results1)), ncol = ncol(spain.results1), byrow = FALSE)))
+mean(rowSums(dif12))
 #.......................................
 # 2. Criterio de filtrado para el voto mayoritario de un grupo político 
 #.......................................
@@ -264,7 +273,11 @@ spain.input2 <- dat.spain[which(apply(dat.spain[,voting.inputs[1:6]],1,function(
 
 (spain.Dhont2 <- dHont(spain.results2, spain.escanos,spain.resultados.DHont))
 
+dif2<-as.data.frame(abs(spain.results2 - matrix(rep(spain.resultados*100, each = nrow(spain.results2)), ncol = ncol(spain.results2), byrow = FALSE)))
+mean(rowSums(dif2))
 
+dif21<-as.data.frame(abs(spain.results2 - matrix(rep(spain.resultados.otros*100, each = nrow(spain.results2)), ncol = ncol(spain.results2), byrow = FALSE)))
+mean(rowSums(dif21))
 #.......................................
 # 3. Criterio de filtrado del voto en blanco inusual 
 #.......................................
@@ -275,7 +288,11 @@ spain.input3 <- dat.spain[which(dat.spain[,voting.inputs[7]]<=threshold.net.size
 #Results
 (spain.results3<-results(spain.input3,spain.subpopulation,spain.total,spain.resultados,voting.inputs,control.inputs))
 (spain.Dhont3 <- dHont(spain.results3, spain.escanos,spain.resultados.DHont))
+dif3<-as.data.frame(abs(spain.results3 - matrix(rep(spain.resultados*100, each = nrow(spain.results3)), ncol = ncol(spain.results3), byrow = FALSE)))
+mean(rowSums(dif3))
 
+dif31<-as.data.frame(abs(spain.results3 - matrix(rep(spain.resultados.otros*100, each = nrow(spain.results2)), ncol = ncol(spain.results2), byrow = FALSE)))
+mean(rowSums(dif31))
 
 #.......................................
 # Filtro 2 y 3
@@ -291,9 +308,11 @@ mean(rowSums(spain.input4[,voting.inputs]))
 
 (spain.Dhont4 <- dHont(spain.results4, spain.escanos,spain.resultados.DHont))
 
-dif<-as.data.frame(abs(spain.results4 - matrix(rep(spain.resultados*100, each = nrow(spain.results4)), ncol = ncol(spain.results4), byrow = FALSE)))
+dif4<-as.data.frame(abs(spain.results4 - matrix(rep(spain.resultados*100, each = nrow(spain.results4)), ncol = ncol(spain.results4), byrow = FALSE)))
+mean(rowSums(dif4))
 
-rowSums(dif)
+dif41<-as.data.frame(abs(spain.results4 - matrix(rep(spain.resultados.otros*100, each = nrow(spain.results4)), ncol = ncol(spain.results4), byrow = FALSE)))
+mean(rowSums(dif41))
 
 #.......................................
 # Filtering criterion together
@@ -301,15 +320,22 @@ rowSums(dif)
 spain.input5 <- dat.spain[which(apply(dat.spain[,voting.inputs],1,sum) < quantile(apply(dat.spain[,voting.inputs],1,sum),probs = threshold.net.size.vote.intention) & apply(dat.spain[,voting.inputs[1:4]],1,function(x) max(prop.table(x)))<=0.95 & dat.spain[,voting.inputs[5]]<=threshold.net.size.vote.blank),] 
 #Results
 (spain.results5<-results(spain.input5,spain.subpopulation,spain.total,spain.resultados,voting.inputs,control.inputs))
-(spain.Dhont5 <- dHont(spain.results5, spain.escanos))
+(spain.Dhont5 <- dHont(spain.results5, spain.escanos,spain.resultados.DHont))
+
+dif5<-as.data.frame(abs(spain.results5 - matrix(rep(spain.resultados*100, each = nrow(spain.results5)), ncol = ncol(spain.results5), byrow = FALSE)))
+mean(rowSums(dif5))
+
+dif51<-as.data.frame(abs(spain.results5 - matrix(rep(spain.resultados.otros*100, each = nrow(spain.results5)), ncol = ncol(spain.results5), byrow = FALSE)))
+mean(rowSums(dif51))
 
 #.......................................
 # Final Results
 #.......................................
 
-spain.resultados[7]<-0.1309
-spain.input<-dat.spain[which(apply(dat.spain[,voting.inputs[1:4]],1,function(x) max(prop.table(x)))<=0.95 & dat.spain[,voting.inputs[5]]<=threshold.net.size.vote.blank),] 
-spain.results<-results(spain.input,spain.subpopulation,spain.total,spain.resultados,voting.inputs,control.inputs)
+
+spain.input<- dat.spain[which(apply(dat.spain[,voting.inputs],1,sum)<quantile(apply(dat.spain[,voting.inputs],1,sum),probs = threshold.net.size.vote.intention)),]
+
+spain.results<-results(spain.input,spain.subpopulation,spain.total,spain.resultados,voting.inputs,control.inputs = control.inputs)
 colnames(spain.results)[7]<-"Otros"
 (spain.Dhont <- dHont2(spain.results, spain.escanos,spain.resultados.DHont))
 
@@ -329,6 +355,7 @@ colnames(df.france) <- c("Gender","Year.Birth","BdE","La France Revient","LE","L
 france.resultados <- c(0.1460,0.3137,0.055,0.0725,0.0989,0.1383,0.0137)
 france.resultados.DHont<-c(13,30,5,6,9,13,5)
 france.escanos <- 81
+france.resultados.otros<-c(0.1460,0.3137,0.055,0.0725,0.0989,0.1383,0.1756)
 
 #.......................................
 #Preproc
@@ -355,8 +382,6 @@ france.subpopulation <- c(11771902 ,17258866,23414389,3700000,2300000,199089)
 france.total <- 49500000 
 names(france.subpopulation) <- control.inputs
 
-
-
 #.......................................
 # Raw Data
 #.......................................
@@ -366,7 +391,6 @@ results(dat.france,france.subpopulation,france.total,france.resultados,voting.in
 #.......................................
 #Identification of outlying observations
 #.......................................
-
 
 #.......................................
 # 1.Criterio para eliminar a los encuestados con una red por encima de un umbral específico
@@ -379,6 +403,12 @@ france.input1<- dat.france[which(apply(dat.france[,voting.inputs],1,sum)<quantil
 (france.results1<-results(france.input1,france.subpopulation,france.total,france.resultados,voting.inputs,control.inputs = control.inputs))
 (france.Dhont1 <- dHont(france.results1, france.escanos,france.resultados.DHont))
 
+france.dif1<-as.data.frame(abs(france.results1 - matrix(rep(france.resultados*100, each = nrow(france.results1)), ncol = ncol(france.results1), byrow = FALSE)))
+mean(rowSums(france.dif1))
+
+france.dif11<-as.data.frame(abs(france.results1 - matrix(rep(france.resultados.otros*100, each = nrow(france.results1)), ncol = ncol(france.results1), byrow = FALSE)))
+mean(rowSums(france.dif11))
+
 #.......................................
 # 2.Criterio de filtrado para el voto mayoritario de un grupo político 
 #.......................................
@@ -390,6 +420,12 @@ france.input2 <- dat.france[which(apply(dat.france[,voting.inputs[1:6]],1,functi
 (france.Dhont2 <- dHont(france.results2, france.escanos,france.resultados.DHont))
 
 
+france.dif2<-as.data.frame(abs(france.results2 - matrix(rep(france.resultados*100, each = nrow(france.results1)), ncol = ncol(france.results1), byrow = FALSE)))
+mean(rowSums(france.dif2))
+
+france.dif21<-as.data.frame(abs(france.results2 - matrix(rep(france.resultados.otros*100, each = nrow(france.results1)), ncol = ncol(france.results1), byrow = FALSE)))
+mean(rowSums(france.dif21))
+
 #.......................................
 # 3.Criterio de filtrado del voto en blanco inusual 
 #.......................................
@@ -400,6 +436,13 @@ france.input3 <- dat.france[which(dat.france[,voting.inputs[7]]<=threshold.net.s
 #Results
 (france.results3<- results(france.input3,france.subpopulation,france.total,france.resultados,voting.inputs,control.inputs = control.inputs))
 (france.Dhont3 <- dHont(france.results3, france.escanos,france.resultados.DHont))
+
+
+france.dif3<-as.data.frame(abs(france.results3 - matrix(rep(france.resultados*100, each = nrow(france.results1)), ncol = ncol(france.results1), byrow = FALSE)))
+mean(rowSums(france.dif3))
+
+france.dif31<-as.data.frame(abs(france.results3 - matrix(rep(france.resultados.otros*100, each = nrow(france.results1)), ncol = ncol(france.results1), byrow = FALSE)))
+mean(rowSums(france.dif31))
 
 #.......................................
 # Filtro 2 y 3
@@ -416,26 +459,44 @@ mean(rowSums(france.input4[,voting.inputs]))
 
 (france.Dhont4 <- dHont(france.results4, france.escanos,france.resultados.DHont))
 
-dif<-as.data.frame(abs(france.results4 - matrix(rep(france.resultados*100, each = nrow(france.results4)), ncol = ncol(france.results4), byrow = FALSE)))
+france.dif4<-as.data.frame(abs(france.results4 - matrix(rep(france.resultados*100, each = nrow(france.results1)), ncol = ncol(france.results1), byrow = FALSE)))
+mean(rowSums(france.dif4))
 
-rowSums(dif)
+france.dif41<-as.data.frame(abs(france.results4 - matrix(rep(france.resultados.otros*100, each = nrow(france.results1)), ncol = ncol(france.results1), byrow = FALSE)))
+mean(rowSums(france.dif41))
+
+
+#.......................................
+# Filtro 1 y 3
+#.......................................
+
+france.input5 <- dat.france[which(apply(dat.france[,voting.inputs],1,sum)<quantile(apply(dat.france[,voting.inputs],1,sum),probs = threshold.net.size.vote.intention) & dat.france[,voting.inputs[7]]<=threshold.net.size.vote.blank),] 
+
+(france.results5<-results(france.input5,france.subpopulation,france.total,france.resultados,voting.inputs,control.inputs))
+
+(france.Dhont5 <- dHont(france.results4, france.escanos,france.resultados.DHont))
+
+france.dif5<-as.data.frame(abs(france.results5 - matrix(rep(france.resultados*100, each = nrow(france.results1)), ncol = ncol(france.results1), byrow = FALSE)))
+mean(rowSums(france.dif5))
+
+france.dif51<-as.data.frame(abs(france.results5 - matrix(rep(france.resultados.otros*100, each = nrow(france.results1)), ncol = ncol(france.results1), byrow = FALSE)))
+mean(rowSums(france.dif51))
 
 #.......................................
 # Filtering criterion together
 #.......................................
-france.input42 <- dat.france[which(apply(dat.france[,voting.inputs],1,sum) < quantile(apply(dat.france[,voting.inputs],1,sum),probs = threshold.net.size.vote.intention) & apply(dat.france[,voting.inputs[1:6]],1,function(x) max(prop.table(x)))<=0.95 & dat.france[,voting.inputs[7]]<=threshold.net.size.vote.blank),] 
+france.input6 <- dat.france[which(apply(dat.france[,voting.inputs],1,sum) < quantile(apply(dat.france[,voting.inputs],1,sum),probs = threshold.net.size.vote.intention) & apply(dat.france[,voting.inputs[1:6]],1,function(x) max(prop.table(x)))<=0.95 & dat.france[,voting.inputs[7]]<=threshold.net.size.vote.blank),] 
 #Results
-(france.results42<- results(france.input42,france.subpopulation,france.total,france.resultados,voting.inputs,control.inputs = control.inputs))
-(france.Dhont42 <- dHont(france.results42, france.escanos,france.resultados.DHont))
-dif2<-as.data.frame(abs(france.results42 - matrix(rep(france.resultados*100, each = nrow(france.results4)), ncol = ncol(france.results4), byrow = FALSE)))
-
-rowSums(dif2)
-
+(france.results6<- results(france.input6,france.subpopulation,france.total,france.resultados,voting.inputs,control.inputs = control.inputs))
+(france.Dhont6 <- dHont(france.results6, france.escanos,france.resultados.DHont))
+france.dif6<-as.data.frame(abs(france.results6 - matrix(rep(france.resultados*100, each = nrow(france.results4)), ncol = ncol(france.results4), byrow = FALSE)))
+mean(rowSums(france.dif6))
+france.dif61<-as.data.frame(abs(france.results6 - matrix(rep(france.resultados.otros*100, each = nrow(france.results1)), ncol = ncol(france.results1), byrow = FALSE)))
+mean(rowSums(france.dif61))
 
 #.......................................
 # Final Results
 #.......................................
-france.resultados[7]<-0.1756
 france.input<-dat.france[which(apply(dat.france[,voting.inputs[1:6]],1,function(x) max(prop.table(x)))<=0.95 & dat.france[,voting.inputs[7]]<=threshold.net.size.vote.blank),] 
 (france.results<-results(france.input,france.subpopulation,france.total,france.resultados,voting.inputs,control.inputs))
 colnames(france.results)[7]<-"Otros"
